@@ -34,19 +34,19 @@ conda env create -f configs/env.yml
 conda activate data_processor
 
 # Process LAS files using default config
-python process_data.py
+python data_processor/process_data.py
 
 # Process a single LAS file with labels
-python process_data.py --las_file data/raw/site1.las --labels data/labels/site1.shp
+python data_processor/process_data.py --las_file data/raw/site1.las --labels data/labels/site1.shp
 
 # Generate patches from existing GeoTIFF rasters
-python process_data.py --from-rasters data/rasters/site/0.25m/chm/ --labels-dir data/labels/
+python data_processor/process_data.py --from-rasters data/rasters/site/0.25m/chm/ --labels-dir data/labels/
 
 # Create AOI and test region shapefiles interactively
-python create_shapefiles.py
+python data_processor/create_shapefiles.py
 
 # Visualize train/val/test splits
-python visualize_splits.py --splits-csv data/splits/split_0.15m_128px.csv \
+python data_processor/visualize_splits.py --splits-csv data/splits/split_0.15m_128px.csv \
     --raster data/rasters/site/0.15m/chm/plot.tif --output-dir viz/
 ```
 
@@ -57,7 +57,7 @@ python visualize_splits.py --splits-csv data/splits/split_0.15m_128px.csv \
 Orchestrates the full pipeline: loading data, generating rasters, extracting patches, and writing splits.
 
 ```
-python process_data.py [OPTIONS]
+python data_processor/process_data.py [OPTIONS]
 ```
 
 | Flag | Description |
@@ -82,13 +82,13 @@ Two interactive matplotlib-based editors for defining Areas of Interest and test
 
 **Config-driven batch mode** (processes all pairs from config):
 ```bash
-python create_shapefiles.py
-python create_shapefiles.py --config configs/create_shapefiles.yml
+python data_processor/create_shapefiles.py
+python data_processor/create_shapefiles.py --config configs/create_shapefiles.yml
 ```
 
 **Subcommand: `aoi`** — Generate AOI mask from labels with interactive gap editing:
 ```bash
-python create_shapefiles.py aoi --raster chm.tif --labels labels.shp \
+python data_processor/create_shapefiles.py aoi --raster chm.tif --labels labels.shp \
     [--buffer METERS] [--max-gap-area M2] [--save output.shp]
 ```
 - Left-click gaps to toggle fill/unfill
@@ -97,7 +97,7 @@ python create_shapefiles.py aoi --raster chm.tif --labels labels.shp \
 
 **Subcommand: `test-plots`** — Place rectangular test regions interactively:
 ```bash
-python create_shapefiles.py test-plots --raster chm.tif \
+python data_processor/create_shapefiles.py test-plots --raster chm.tif \
     [--labels labels.shp] [--plot-width M] [--plot-height M] \
     [--grid-size M] [--save output.shp]
 ```
@@ -110,7 +110,7 @@ python create_shapefiles.py test-plots --raster chm.tif \
 Generates overview images of train/val/test patch distributions.
 
 ```bash
-python visualize_splits.py --splits-csv SPLITS.csv --raster RASTER.tif \
+python data_processor/visualize_splits.py --splits-csv SPLITS.csv --raster RASTER.tif \
     --output-dir OUT/ [--labels LABELS.shp] [--aoi AOI.shp] \
     [--test-regions TEST.shp] [--base-dir BASE]
 ```
