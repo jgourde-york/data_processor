@@ -1,0 +1,48 @@
+# Shapefile Generation Configuration
+# Settings for AOI mask and test plot region creation via create_shapefiles.py
+
+# ==============================================================================
+# Mode: which shapefiles to generate
+# ==============================================================================
+# Options: "aoi", "test-plots", "both"
+mode: both
+
+# ==============================================================================
+# Input: raster-label pairs to process
+# ==============================================================================
+file_label_pairs:
+  - raster: "data/rasters/GLSL/0.15m/chm/GLSL.tif"
+    labels: "data/shapefiles/labels/GLSL.shp"
+  # - raster: "data/rasters/SiteName/0.15m/chm/plot.tif"
+  #   labels: "data/labels/plot.shp"
+
+# ==============================================================================
+# Output directories
+# ==============================================================================
+# Shapefiles are saved as {output_dir}/{plot_name}_aoi.shp and
+# {output_dir}/{plot_name}_test_regions.shp
+aoi_output_dir: "data/shapefiles/aoi"
+test_regions_output_dir: "data/shapefiles/test_regions"
+
+# ==============================================================================
+# AOI Generation
+# ==============================================================================
+aoi:
+  # Buffer distance (meters) for buffered union around labels.
+  # Controls how far apart labels can be before becoming separate AOI regions.
+  buffer_distance: 5.0
+
+  # Auto-fill edge gaps (concavities) smaller than this area (m²).
+  # Set to 0 to disable auto-fill and handle all gaps interactively.
+  max_gap_area: 500.0
+
+# ==============================================================================
+# Test Plot Regions
+# ==============================================================================
+test_plots:
+  # Default plot dimensions in meters
+  plot_width: 50.0
+  plot_height: 50.0
+
+  # Default grid overlay size in meters
+  grid_size: 50.0

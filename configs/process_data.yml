@@ -1,0 +1,260 @@
+# Data Processor Configuration
+# This configuration file controls all aspects of LAS/LAZ to CHM patch processing
+
+# ==============================================================================
+# Input/Output Paths
+# ==============================================================================
+paths:
+  # Mode 1: Single directory (simple mode)
+  # Process all LAS/LAZ files in this directory
+  # input_dirs:
+  #   - "data/raw/Kapuskasing"
+  #   - "data/raw/NorthBay"
+  #   - "data/raw/Petawawa"
+
+  # Mode 4: File-label pairs (supervised mode)
+  # file_label_pairs:
+  #   - las_file: "data/raw/ITC_TRUTH_veg218.laz"
+  #     labels: "data/labels/ITC_TRUTH218.shp"
+
+  # Mode 2: Multiple directories (batch mode)
+  # Process all LAS/LAZ files in multiple directories
+  # Uncomment to use this mode (overrides input_dir)
+  # input_dirs:
+  #   - "data/site1/raw"
+  #   - "data/site2/raw"
+  #   - "data/site3/raw"
+
+  # Mode 3: Specific files (file list mode)
+  # Process only specific LAS/LAZ files
+  # Uncomment to use this mode (overrides input_dir and input_dirs)
+  # input_files:
+  #   - "data/raw/plot_001.las"
+  #   - "data/raw/plot_002.las"
+  #   - "data/raw/plot_003.las"
+
+  # Mode 4: File-label pairs (supervised mode)
+  # Each LAS file paired with its corresponding label shapefile
+  # Uncomment to use this mode (overrides all other input modes)
+  # file_label_pairs:
+  #   - las_file: "data/raw/site1_plot1.las"
+  #     labels: "data/labels/site1_plot1_trees.shp"
+  #   - las_file: "data/raw/site1_plot2.las"
+  #     labels: "data/labels/site1_plot2_trees.shp"
+  #   - las_file: "data/raw/site2_plot1.las"
+  #     labels: null  # This plot has no labels
+
+  # Mode 5: Directory-label pairs (batch supervised mode)
+  # Each directory of LAS/raster files paired with a directory of label shapefiles
+  # Matching is done by filename (e.g., plot1.las -> plot1.shp, T1.tif -> T1.shp)
+  # Supports both LAS/LAZ and GeoTIFF raster files (auto-detected by extension).
+  # For rasters, enable the 'upsample' section below to resample before patching.
+  # Uncomment to use this mode (overrides all other input modes)
+  dir_label_pairs:
+    - data_dir: "data/raw/FinnishTaiga/Data/Images"
+      labels_dir: "data/raw/FinnishTaiga/Data/SHP"
+
+  # Output directories
+  # Rasters and patches are saved per-layer under:
+  #   {rasters_dir}/{site}/{resolution}/{layer}/{plot}.tif
+  #   {rasters_dir}/{site}/{resolution}/{layer}/{patch_size}/{fname}.tif
+  # Splits CSV: data/splits/split_{resolution}_{patch_size}.csv
+  rasters_dir: "data/rasters"
+  normalized_dir: "data/normalized"        # Height-normalized LAS/LAZ files
+
+  # Global label shapefile (Mode 1-3 only)
+  # Applied to all LAS files if file_label_pairs or dir_label_pairs not specified
+  labels_shapefile: null
+
+  # Area of Interest shapefile (optional)
+  # Only patches fully inside the AOI polygons are kept
+  aoi: null
+
+  # Test region shapefile (optional)
+  # Patches whose center falls inside a test region polygon are assigned to the
+  # 'test' split; remaining patches are split into train/val per dataset ratios
+  test_regions: null
+
+# ==============================================================================
+# CHM Generation Parameters
+# ==============================================================================
+chm:
+  # Spatial resolution (meters per pixel, square pixels)
+  # Lower values = higher detail but larger file sizes
+  resolution: 0.15  # 15cm resolution
+
+  # CHM value constraints
+  min_height: 0.5   # Minimum CHM value (meters) - filters ground vegetation
+  max_height: 50.0  # Maximum CHM value (meters) - clips outliers
+
+  # DTM (Digital Terrain Model) interpolation method
+  # Options: "linear", "nearest", "cubic"
+  dtm_method: "linear"
+
+  # Use ground-classified points (class 2) for DTM
+  # If false or no ground points exist, uses 10th percentile
+  use_ground_class: true
+
+  # Post-processing smoothing for low-density point clouds
+  # Applies Gaussian smoothing with percentile-based height rescaling
+  # to compensate for zero-dilution from sparse data
+  smoothing:
+    enabled: true
+    sigma: 1.25             # Gaussian sigma in pixels
+    rescale: "p95"        # Rescale method: "p95" or "none"
+    rescale_percentile: 95  # Percentile to match when rescaling
+
+# ==============================================================================
+# Raster Layers
+# ==============================================================================
+layers:
+  # Enable/disable specific raster layers
+  # At least one layer must be enabled
+  chm: true        # Canopy Height Model (DSM - DTM)
+  dsm: false       # Digital Surface Model (max elevation)
+  dtm: false       # Digital Terrain Model (ground elevation)
+  intensity: false  # LiDAR intensity from first returns
+  density: false    # Point density (points per square meter)
+
+# ==============================================================================
+# Patch Generation Parameters
+# ==============================================================================
+patches:
+  # Patch size in pixels (square patches)
+  # 64px at 0.15m = 9.6m x 9.6m patches
+  size: 128
+
+  # Minimum overlap between adjacent patches (0.0 to 0.5)
+  # The algorithm will test overlaps from this value up to 50%
+  # and select the one that maximizes valid patch coverage
+  min_overlap: 0.5  # 50% overlap
+
+  # Minimum data coverage threshold (0.0 to 1.0)
+  # Patches with less coverage are discarded
+  min_coverage: 0.7  # 70% coverage required
+
+  # Buffer distance around patch for edge effects (meters)
+  # Helps reduce edge artifacts in rasterization
+  buffer_distance: 2.0
+
+# ==============================================================================
+# Rotation Optimization
+# ==============================================================================
+rotation:
+  # Enable automatic rotation to minimize bounding box area
+  # Uses PCA to find optimal alignment
+  enabled: true
+
+# ==============================================================================
+# Raster Upsampling (for --from-rasters or raster dir_label_pairs)
+# ==============================================================================
+upsample:
+  # Enable upsampling of input rasters before patch generation.
+  # When dir_label_pairs contains GeoTIFF rasters (not LAS), this resamples
+  # them to a finer resolution before the standard patching pipeline.
+  enabled: true
+
+  # Target resolution in meters per pixel
+  target_resolution: 0.25
+
+  # Resampling method: nearest, bilinear, or cubic
+  method: bilinear
+
+  # Band index (1-based) to extract from multi-band rasters.
+  # Set to null to use band 1. E.g., 4 for CHM in Finnish Taiga 4-band rasters.
+  band: 1
+
+  # Override auto-detected site name for output paths and splits CSV.
+  # Set to null to auto-detect from parent directory.
+  site_name: FinnishTaiga
+
+# ==============================================================================
+# Quality Control
+# ==============================================================================
+quality:
+  # Local density window size for coverage estimation (meters)
+  support_window: 0.5
+
+  # Minimum local point density (points per square meter)
+  # Areas below this threshold are considered "no data"
+  min_local_density: 0.5
+
+  # Gap filling parameters
+  fill_small_gaps: true
+  gap_dilation_iterations: 2
+  gaussian_smoothing_sigma: 1.0
+
+# ==============================================================================
+# Output Format
+# ==============================================================================
+output:
+  # GeoTIFF compression
+  # Options: "lzw", "deflate", "none"
+  compression: "lzw"
+
+  # Data type for output rasters
+  # Options: "float32", "float64"
+  dtype: "float32"
+
+  # NoData value
+  nodata: 0.0
+
+  # Save annotations (if labels_shapefile provided)
+  save_annotations: true
+
+  # Naming pattern for patches
+  # Available variables: {site}, {plot}, {index}, {x}, {y}
+  # Flat structure: all patches in one directory
+  naming_pattern: "{site}_{plot}_{index:04d}"
+
+# ==============================================================================
+# Processing Options
+# ==============================================================================
+processing:
+  # Number of patches to process in parallel
+  # Set to 1 for sequential processing, or higher for multiprocessing
+  # Note: Each worker loads the full LAS file into memory
+  num_workers: 1
+
+  # Show progress bars
+  show_progress: true
+
+  # Verbose logging
+  verbose: true
+
+  # Save intermediate outputs for debugging
+  save_intermediate: false
+
+# ==============================================================================
+# Coordinate Reference System (CRS)
+# ==============================================================================
+crs:
+  # Auto-detect CRS from LAS header
+  auto_detect: true
+
+  # Fallback CRS if detection fails (EPSG code or WKT string)
+  # Common options:
+  #   - 32617: UTM Zone 17N (eastern North America)
+  #   - 32618: UTM Zone 18N
+  #   - 4326: WGS84 (lat/lon)
+  fallback_epsg: 32635
+
+# ==============================================================================
+# Dataset Splitting
+# ==============================================================================
+dataset:
+  # Automatically split patches into train/val/test
+  auto_split: true
+
+  # Split ratios (must sum to 1.0)
+  split_ratios:
+    train: 0.70
+    val: 0.15
+    test: 0.15
+
+  # Random seed for reproducible splits
+  seed: 42
+
+  # Generate CSV file with splits (instead of copying files to subdirectories)
+  # CSV columns: patch_file, label_file, split, site, plot
+  splits_csv: "splits.csv"
